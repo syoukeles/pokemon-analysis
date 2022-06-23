@@ -4,9 +4,6 @@ import numpy as np
 
 data = pd.read_csv("pokemon_data.csv")
 
-# sort_best = data.sort_values(by='Total',ascending=False)
-# best_standard = sort_best[(sort_best['Legendary'] == False) & (~sort_best['Name'].str.contains("Mega"))]
-
 SUPEREFFECTIVE = {'Grass': set(['Fire', 'Ice', 'Poison', 'Flying', 'Bug']),
                   'Fire': set(['Water', 'Ground', 'Rock']),
                   'Water': set(['Electric', 'Grass']),
@@ -56,21 +53,66 @@ INEFFECTIVE =    {'Flying': set(['Ground']),
                   'Dark': set(['Psychic'])
 }
 
-# print(best_standard[['Name', 'Total']][best_standard['Total'] >= 550])
+#Handles user input
+def command_loop():
+    while True:
+        print("Enter the name of a Pokemon or 'q' to quit: ")
+        pokemon = input().lower()
+        if pokemon == 'q':
+            break
 
+        retrieval = data[data['Name'].str.lower() == pokemon]
+        if retrieval.empty:
+            print("\nNot a valid Pokemon\n")
+            continue
 
+        print_all(retrieval)
 
-def calculate_effect(retrieval_type, types):
-    for effect in SUPEREFFECTIVE[retrieval_type]:
-        types[effect] *= 2
-    for effect in NONEFFECTIVE[retrieval_type]:
-        types[effect] /= 2
-    if retrieval_type in INEFFECTIVE:
-        for effect in INEFFECTIVE[retrieval_type]:
-            types[effect] *= 0
+#Prints full analysis
+def print_all(retrieval):
+    print()
+    print(retrieve(retrieval, "Name") + " (Gen " + str(retrieve(retrieval, "Generation")) + ")")
+    print("Type: " + retrieve(retrieval, "Type 1"), end='')
+    if not pd.isna(retrieval["Type 2"]).bool():
+        print("/" + retrieve(retrieval, "Type 2"), end='')
 
-    return types
+    print("\n\nType Effectiveness")
+    total_effect = effectiveness(retrieval)
+    to_print = (4, 2, 0.5, 0.25, 0)
+    for multiplier in to_print:
+        print_effectiveness(total_effect, multiplier)
 
+    print("\nStats")
+    print_stats(retrieval)
+
+#Retrieves data about a specific Pokemon
+def retrieve(retrieval, parameter):
+    return retrieval.iloc[0][parameter]
+
+#Prints effectiveness
+def print_effectiveness(total_effect, multiplier):
+    if len(total_effect[multiplier]) > 0:
+        print(str(multiplier) + "x Effective: ", end='')
+        index = 0
+        for type in total_effect[multiplier]:
+            print(type, end='')
+            index += 1
+            if index < len(total_effect[multiplier]):
+                print(", ", end='')
+        print()
+
+#Prints stats
+def print_stats(retrieval):
+    print("Stat Total: " + str(retrieve(retrieval, "Total")))
+    print("HP: "  + str(retrieve(retrieval, "HP")))
+    print("Attack: "  + str(retrieve(retrieval, "Attack")))
+    print("Defense: "  + str(retrieve(retrieval, "Defense")))
+    print("Sp. Attack: "  + str(retrieve(retrieval, "Sp. Atk")))
+    print("Sp. Defense: "  + str(retrieve(retrieval, "Sp. Def")))
+    print("Speed: "  + str(retrieve(retrieval, "Speed")))
+    print()
+
+#Returns each type in a dictionary categorized by effectiveness
 def effectiveness(retrieval):
     types = {'Grass': 1, 'Fire': 1, 'Water': 1, 'Poison': 1, 'Flying': 1, 'Dragon': 1, 'Bug': 1, 'Normal': 1, 'Electric': 1, 'Ground': 1, 'Fairy': 1, 'Fighting': 1, 'Psychic': 1, 'Rock': 1, 'Steel': 1, 'Ice': 1, 'Ghost': 1, 'Dark': 1}
     types = calculate_effect(retrieve(retrieval, "Type 1"), types)
@@ -83,73 +125,17 @@ def effectiveness(retrieval):
 
     return total_effect
 
-def options(retrieval):
-    print("\nType 's' for stats, 't' for type effectiveness, or 'b' to go back:")
-    choice = input()
-    if choice == 's':
-        print("\nStat Total: " + retrieval.get(["Total"]).to_string(header=False, index=False))
-        print()
-        print("HP: "  + retrieval.get(["HP"]).to_string(header=False, index=False))
-        print("Attack: "  + retrieval.get(["Attack"]).to_string(header=False, index=False))
-        print("Defense: "  + retrieval.get(["Defense"]).to_string(header=False, index=False))
-        print("Sp. Attack: "  + retrieval.get(["Sp. Atk"]).to_string(header=False, index=False))
-        print("Sp. Defense: "  + retrieval.get(["Sp. Def"]).to_string(header=False, index=False))
-        print("Speed: "  + retrieval.get(["Speed"]).to_string(header=False, index=False))
-        print()
-    elif choice == 't':
-        print("\nTypes")
-    elif choice != 'b':
-        print("\nNot a valid choice")
-        options(retrieval)
+#Edits and returns a given dictionary of types based on each type's effectiveness
+def calculate_effect(retrieval_type, types):
+    for effect in SUPEREFFECTIVE[retrieval_type]:
+        types[effect] *= 2
+    for effect in NONEFFECTIVE[retrieval_type]:
+        types[effect] /= 2
+    if retrieval_type in INEFFECTIVE:
+        for effect in INEFFECTIVE[retrieval_type]:
+            types[effect] *= 0
 
-def command_loop():
-    while True:
-        print("Enter the name of a Pokemon or 'q' to quit: ")
-        pokemon = input().lower()
-        if pokemon == 'q':
-            break
-        retrieval = data[data['Name'].str.lower() == pokemon]
-        if retrieval.empty:
-            print("\nNot a valid Pokemon\n")
-            continue
-        print_all(retrieval)
+    return types
 
-def retrieve(retrieval, parameter):
-    return retrieval.iloc[0][parameter]
-
-def print_all(retrieval):
-    print()
-    print(retrieve(retrieval, "Name") + " (Gen " + str(retrieve(retrieval, "Generation")) + ")")
-    print("Type: " + retrieve(retrieval, "Type 1"), end='')
-    if not pd.isna(retrieval["Type 2"]).bool():
-        print("/" + retrieve(retrieval, "Type 2"), end='')
-    print("\n\nType Effectiveness")
-    total_effect = effectiveness(retrieval)
-    to_print = (4, 2, 0.5, 0.25, 0)
-    for multiplier in to_print:
-        print_effectiveness(total_effect, multiplier)
-    print("\nStats")
-    print_stats(retrieval)
-
-def print_effectiveness(total_effect, multiplier):
-    if len(total_effect[multiplier]) > 0:
-        print(str(multiplier) + "x Effective: ", end='')
-        index = 0
-        for type in total_effect[multiplier]:
-            print(type, end='')
-            index += 1
-            if index < len(total_effect[multiplier]):
-                print(", ", end='')
-        print()
-
-def print_stats(retrieval):
-    print("Stat Total: " + str(retrieve(retrieval, "Total")))
-    print("HP: "  + str(retrieve(retrieval, "HP")))
-    print("Attack: "  + str(retrieve(retrieval, "Attack")))
-    print("Defense: "  + str(retrieve(retrieval, "Defense")))
-    print("Sp. Attack: "  + str(retrieve(retrieval, "Sp. Atk")))
-    print("Sp. Defense: "  + str(retrieve(retrieval, "Sp. Def")))
-    print("Speed: "  + str(retrieve(retrieval, "Speed")))
-    print()
 
 command_loop()
