@@ -95,7 +95,7 @@ class Pokemon:
     
     # Calculates a Pokemon's stat total
     def calculate_total(self):
-        return self.attack + self.defense + self.spatk + self.spdef + self.speed + self.hp
+        return int(round(self.attack + self.defense + self.spatk + self.spdef + self.speed + self.hp))
     
     # Returns each type in a dictionary categorized by effectiveness against
     # this Pokemon
@@ -218,7 +218,15 @@ def comparison_loop():
         adjust_stats(p1, p2)
 
         print("The winner is:")
-        print(p1.name) if p1.calculate_total() > p2.calculate_total() else print(p2.name)
+        if p1.calculate_total() > p2.calculate_total():
+            print(p1.name)
+            print("Score: " + str(p1.calculate_total()) + " - " + str(p2.calculate_total()))
+        elif p2.calculate_total() > p1.calculate_total():
+            print(p2.name)
+            print("Score: " + str(p2.calculate_total()) + " - " + str(p1.calculate_total()))
+        else:
+            print("Tie!")
+            print("Score: " + str(p2.calculate_total()) + " - " + str(p1.calculate_total()))
         
 # Extracts a piece of data from a given row of a DataFrame
 def retrieve(retrieval, parameter):
@@ -243,11 +251,14 @@ def get_level():
 
 # Compares two given Pokemon and adjusts their stats accordingly
 def adjust_stats(p1, p2):
-    attack_adjust(p1)
-    attack_adjust(p2)
+    attack_adjust1(p1)
+    attack_adjust1(p2)
     stab_adjust(p1, p2)
     stab_adjust(p2, p1)
-    speed_adjust(p1, p2) if p2.speed > p1.speed else speed_adjust(p2, p1)
+    attack_adjust2(p1, p2)
+    attack_adjust2(p2, p1)
+    if p1.speed != p2.speed:
+        speed_adjust(p1, p2) if p2.speed > p1.speed else speed_adjust(p2, p1)
 
 # Returns the stab multiplier of the Pokemon 'winner'
 def stab_multiplier(loser, winner):
@@ -276,11 +287,18 @@ def speed_adjust(loser, winner):
     else:
         loser.hp -= ((((2 * winner.level) / 5) + 2) * 50 * (winner.spatk / loser.spdef)) / 50 + 2
 
-# Gives attack stat disadvantage if necessary to the Pokemon 'loser'
-def attack_adjust(loser):
+# Gives attack stat disadvantage if necessary
+def attack_adjust1(loser):
     if (loser.attack - loser.spatk) >= 40:
         loser.spatk /= 2
     elif (loser.spatk - loser.attack) >= 40:
         loser.attack /= 2
+
+# Adjusts HP based on attack stats as necessary
+def attack_adjust2(loser, winner):
+    if winner.attack > winner.spatk:
+        loser.hp -= (winner.attack - loser.defense)
+    else:
+        loser.hp -= (winner.spatk - loser.spdef)
 
 command_loop()
